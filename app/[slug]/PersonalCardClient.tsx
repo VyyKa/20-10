@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import type { PersonData } from '@/lib/data'
+import type { PersonData, MessagePart } from '@/lib/data'
 
 interface PersonalCardClientProps {
   name: string
@@ -63,7 +63,35 @@ export default function PersonalCardClient({ name, personInfo }: PersonalCardCli
               <h2 className="main-date">20/10</h2>
             </div>
             <div className="main-message">
-              <p>{personInfo.message}</p>
+              {/* Support legacy string message or new MessagePart[] */}
+              {typeof personInfo.message === 'string' ? (
+                <p>{personInfo.message}</p>
+              ) : (
+                personInfo.message.map((part: MessagePart, idx: number) => {
+                  if (part.type === 'text') {
+                    return (
+                      <p key={idx} className="message-text">
+                        {part.text}
+                      </p>
+                    )
+                  }
+
+                  if (part.type === 'image') {
+                    // Use a simple anchor with download for images in public/
+                    const fileName = part.src.split('/').pop() || `image-${idx}`
+                    return (
+                      <div key={idx} className="message-image">
+                        <img src={part.src} alt={part.alt || name} />
+                        <a href={part.src} download={fileName} className="download-button" aria-label={`Tải xuống ${fileName}`}>
+                          Tải thiệp cá nhân
+                        </a>
+                      </div>
+                    )
+                  }
+
+                  return null
+                })
+              )}
             </div>
           </div>
 

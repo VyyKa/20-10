@@ -12,6 +12,7 @@ export default function HomePage() {
   const [selectedName, setSelectedName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loadingModal, setLoadingModal] = useState(false)
 
   const handleNameClick = (name: string) => {
     setSelectedName(name)
@@ -20,17 +21,30 @@ export default function HomePage() {
     setError('')
   }
 
-  const handleSubmit = () => {
-    const personInfo = personData[selectedName]
-    
-    if (personInfo && password === personInfo.password) {
-      // Password correct, navigate to personal page
+  const handleSubmit = async () => {
+    setError('')
+    setLoadingModal(true)
+    try {
       const slug = nameToSlug(selectedName)
-      router.push(`/${slug}`)
-    } else {
-      // Password incorrect
-      setError('Mật khẩu không đúng! Vui lòng thử lại.')
-      setPassword('')
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ slug, password }),
+      })
+
+      if (res.ok) {
+        // Auth cookie set by server; redirect to the page which will validate the cookie
+        router.push(`/${slug}`)
+      } else {
+        const j = await res.json().catch(() => ({}))
+        setError(j?.message || 'Mật khẩu không đúng! Vui lòng thử lại.')
+        setPassword('')
+      }
+    } catch (e) {
+      setError('Lỗi mạng. Vui lòng thử lại.')
+    } finally {
+      setLoadingModal(false)
     }
   }
 
@@ -179,8 +193,9 @@ export default function HomePage() {
                   background: 'linear-gradient(135deg, #d63384, #ff6b9d)',
                   color: 'white'
                 }}
+                disabled={loadingModal}
               >
-                Xác nhận
+                {loadingModal ? 'Đang xác thực...' : 'Xác nhận'}
               </button>
               <button
                 onClick={handleCancel}
